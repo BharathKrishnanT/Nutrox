@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import { DataService } from '../services/data.service';
 import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../pipes/translate.pipe';
+import { GEMINI_API_KEY } from '../config';
 
 @Component({
   selector: 'app-plant-analyser',
@@ -250,6 +251,7 @@ export class PlantAnalyserComponent {
       const ai = new GoogleGenAI({ apiKey });
       
       // Prepare Image
+      const mimeType = this.previewUrl()!.split(';')[0].split(':')[1];
       const base64Data = this.previewUrl()!.split(',')[1];
       
       const prompt = `
@@ -271,16 +273,13 @@ export class PlantAnalyserComponent {
       `;
 
       const result = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: prompt },
-              { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
-            ]
-          }
-        ]
+        model: 'gemini-3-flash-preview',
+        contents: {
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: mimeType, data: base64Data } }
+          ]
+        }
       });
 
       const responseText = result.text;

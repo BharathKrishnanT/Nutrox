@@ -17,10 +17,7 @@
               "browser": "."
             },
             "browser": "index.tsx",
-            "tsConfig": "tsconfig.json",
-            "define": {
-              "GEMINI_API_KEY": "'AIzaSyAfyx8uN-yfgwmX6wOT_y9scQcf2vJUYZA'"
-            }
+            "tsConfig": "tsconfig.json"
           },
           "configurations": {
             "production": {

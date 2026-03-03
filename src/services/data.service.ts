@@ -1,5 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { GoogleGenAI } from "@google/genai";
+import { GEMINI_API_KEY } from '../config';
 
 export type Tab = 'readings' | 'tank' | 'motor' | 'ratio' | 'guide' | 'analyser' | 'weather' | 'advisor';
 
