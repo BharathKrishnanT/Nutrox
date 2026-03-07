@@ -273,12 +273,18 @@ export class PlantAnalyserComponent {
       `;
 
       const result = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: {
-          parts: [
-            { text: prompt },
-            { inlineData: { mimeType: mimeType, data: base64Data } }
-          ]
+        model: 'gemini-2.0-flash-exp',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType: mimeType, data: base64Data } }
+            ]
+          }
+        ],
+        config: {
+          responseMimeType: 'application/json'
         }
       });
 
@@ -295,11 +301,13 @@ export class PlantAnalyserComponent {
         if (analysis.deficiency) {
           this.dataService.addDeficiency(analysis.deficiency);
         }
+      } else {
+         throw new Error('Invalid JSON response');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis failed', error);
-      alert(this.translationService.translate('analysis_failed'));
+      alert(`Analysis failed: ${error.message || error}`);
     } finally {
       this.isAnalyzing.set(false);
     }
