@@ -259,8 +259,8 @@ export class CropAdvisorComponent implements OnInit {
         this.water()
       );
       this.result.set(data);
-    } catch (e) {
-      alert('Failed to get suggestions. Please try again.');
+    } catch (e: any) {
+      alert(`Failed to get suggestions. Please try again. Error: ${e.message || e}`);
     } finally {
       this.loading.set(false);
     }

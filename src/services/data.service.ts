@@ -843,9 +843,9 @@ export class DataService {
       if (!text) throw new Error('No response from Gemini');
       
       return JSON.parse(text);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Gemini suggestion failed:', error);
-      throw error;
+      throw new Error(error.message || String(error));
     }
   }
 
