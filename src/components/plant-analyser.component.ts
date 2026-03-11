@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleGenAI } from '@google/genai';
 import { DataService } from '../services/data.service';
@@ -6,146 +6,176 @@ import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../pipes/translate.pipe';
 import { GEMINI_API_KEY } from '../config';
 
+export interface AnalysisHistory {
+  id: string;
+  date: number;
+  image: string;
+  result: any;
+}
+
 @Component({
   selector: 'app-plant-analyser',
   standalone: true,
   imports: [CommonModule, TranslatePipe],
   template: `
-    <div class="max-w-4xl mx-auto">
-      <header class="mb-8 text-center">
-        <div class="inline-block p-3 rounded-full bg-green-100 text-green-600 mb-4 text-3xl">🌿</div>
-        <h2 class="text-3xl font-bold text-[#6A5A4F] mb-2">{{ 'ai_plant_diagnostician' | translate }}</h2>
-        <p class="text-stone-600 max-w-lg mx-auto">{{ 'plant_analyser_desc' | translate }}</p>
+    <div class="max-w-5xl mx-auto">
+      <header class="mb-10 text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 text-white shadow-lg shadow-green-200 mb-6 text-3xl transform -rotate-6 hover:rotate-0 transition-transform duration-300">🌿</div>
+        <h2 class="text-4xl font-extrabold text-stone-800 mb-3 tracking-tight">{{ 'ai_plant_diagnostician' | translate }}</h2>
+        <p class="text-stone-500 max-w-xl mx-auto text-lg">{{ 'plant_analyser_desc' | translate }}</p>
       </header>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         <!-- Upload Section -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-           <h3 class="font-bold text-stone-700 mb-4">{{ 'capture_or_upload' | translate }}</h3>
-           
-           <div class="border-2 border-dashed border-stone-300 rounded-xl p-8 text-center hover:bg-stone-50 transition-colors cursor-pointer relative group" (click)="fileInput.click()">
-             <input #fileInput type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)">
+        <div class="lg:col-span-5 space-y-6">
+          <div class="bg-white p-6 rounded-3xl shadow-sm border border-stone-200/60">
+             <div class="flex items-center justify-between mb-4">
+               <h3 class="font-bold text-stone-800 text-lg">{{ 'capture_or_upload' | translate }}</h3>
+               <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-md">Step 1</span>
+             </div>
              
-             @if (previewUrl()) {
-               <img [src]="previewUrl()" class="max-h-64 mx-auto rounded-lg shadow-md object-contain">
-               <button (click)="clearImage($event)" class="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md hover:bg-red-50 text-red-500">✕</button>
-             } @else {
-               <div class="text-stone-400 mb-2 text-4xl group-hover:scale-110 transition-transform">📸</div>
-               <p class="font-bold text-stone-600">{{ 'click_to_upload' | translate }}</p>
-               <p class="text-xs text-stone-400 mt-1">{{ 'supports_formats' | translate }}</p>
-             }
-           </div>
-
-           <div class="mt-4 flex gap-2">
-             <button (click)="fileInput.click()" class="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
-               <span>📂</span> {{ 'upload_photo' | translate }}
-             </button>
-             <button class="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 opacity-50 cursor-not-allowed" title="Camera access requires HTTPS">
-               <span>📷</span> {{ 'open_camera' | translate }}
-             </button>
-           </div>
-
-           @if (previewUrl()) {
-             <button 
-               (click)="analyzeImage()" 
-               [disabled]="isAnalyzing()"
-               class="w-full mt-4 bg-gradient-to-r from-green-600 to-teal-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-70 disabled:cursor-wait flex items-center justify-center gap-2">
-               @if (isAnalyzing()) {
-                 <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                 {{ 'diagnosing' | translate }}...
+             <div class="border-2 border-dashed border-emerald-200 bg-emerald-50/30 rounded-2xl p-8 text-center hover:bg-emerald-50/80 transition-all duration-300 cursor-pointer relative group" (click)="fileInput.click()">
+               <input #fileInput type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)">
+               
+               @if (previewUrl()) {
+                 <img [src]="previewUrl()" class="max-h-64 w-full object-cover rounded-xl shadow-sm">
+                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                    <span class="text-white font-bold bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">Change Image</span>
+                 </div>
+                 <button (click)="clearImage($event)" class="absolute -top-3 -right-3 bg-white rounded-full p-2 shadow-lg hover:bg-red-50 text-red-500 border border-stone-100 transition-transform hover:scale-110">✕</button>
                } @else {
-                 <span>🔍</span> {{ 'analyze_health' | translate }}
+                 <div class="w-20 h-20 mx-auto bg-white rounded-full shadow-sm flex items-center justify-center text-4xl mb-4 group-hover:scale-110 group-hover:shadow-md transition-all duration-300 text-emerald-500">📸</div>
+                 <p class="font-bold text-stone-700 text-lg">{{ 'click_to_upload' | translate }}</p>
+                 <p class="text-sm text-stone-400 mt-2">{{ 'supports_formats' | translate }}</p>
                }
-             </button>
-           }
+             </div>
+
+             <div class="mt-4 flex gap-3">
+               <button (click)="fileInput.click()" class="flex-1 bg-white border border-stone-200 hover:border-emerald-300 hover:bg-emerald-50 text-stone-700 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm">
+                 <span class="text-xl">📂</span> {{ 'upload_photo' | translate }}
+               </button>
+               <button class="flex-1 bg-white border border-stone-200 hover:border-emerald-300 hover:bg-emerald-50 text-stone-700 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm opacity-50 cursor-not-allowed" title="Camera access requires HTTPS">
+                 <span class="text-xl">📷</span> {{ 'open_camera' | translate }}
+               </button>
+             </div>
+
+             @if (previewUrl()) {
+               <button 
+                 (click)="analyzeImage()" 
+                 [disabled]="isAnalyzing()"
+                 class="w-full mt-6 bg-stone-900 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-wait disabled:transform-none flex items-center justify-center gap-3 text-lg">
+                 @if (isAnalyzing()) {
+                   <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                   {{ 'diagnosing' | translate }}...
+                 } @else {
+                   <span class="text-emerald-400">✨</span> {{ 'analyze_health' | translate }}
+                 }
+               </button>
+             }
+          </div>
         </div>
 
         <!-- Results Section -->
-        <div class="space-y-6">
+        <div class="lg:col-span-7 space-y-6">
           
           <!-- Capabilities Info (Shown when no result) -->
-          @if (!result()) {
-            <div class="bg-stone-50 p-6 rounded-2xl border border-stone-200 h-full flex flex-col justify-center">
-               <h4 class="font-bold text-stone-400 uppercase tracking-wider text-xs mb-4">{{ 'capabilities' | translate }}</h4>
-               <ul class="space-y-4">
-                 <li class="flex items-start gap-3">
-                   <div class="bg-red-100 text-red-600 p-2 rounded-lg">🦠</div>
+          @if (!result() && !isAnalyzing()) {
+            <div class="bg-stone-50/50 p-8 rounded-3xl border border-stone-200/60 h-full flex flex-col justify-center">
+               <div class="text-center mb-8">
+                 <div class="w-16 h-16 mx-auto bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl mb-4">🤖</div>
+                 <h4 class="font-bold text-stone-800 text-xl">{{ 'capabilities' | translate }}</h4>
+                 <p class="text-stone-500 text-sm mt-2">Our advanced vision model can detect multiple issues from a single photo.</p>
+               </div>
+               
+               <div class="grid gap-4">
+                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex items-start gap-4 hover:border-red-200 transition-colors">
+                   <div class="bg-red-50 text-red-500 p-3 rounded-xl text-xl">🦠</div>
                    <div>
-                     <div class="font-bold text-stone-700">{{ 'disease_detection' | translate }}</div>
-                     <div class="text-xs text-stone-500">{{ 'cap_disease_desc' | translate }}</div>
+                     <div class="font-bold text-stone-800">{{ 'disease_detection' | translate }}</div>
+                     <div class="text-sm text-stone-500 mt-1">{{ 'cap_disease_desc' | translate }}</div>
                    </div>
-                 </li>
-                 <li class="flex items-start gap-3">
-                   <div class="bg-yellow-100 text-yellow-600 p-2 rounded-lg">🍂</div>
+                 </div>
+                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100 flex items-start gap-4 hover:border-amber-200 transition-colors">
+                   <div class="bg-amber-50 text-amber-500 p-3 rounded-xl text-xl">🍂</div>
                    <div>
-                     <div class="font-bold text-stone-700">{{ 'nutrient_deficiency' | translate }}</div>
-                     <div class="text-xs text-stone-500">{{ 'cap_deficiency_desc' | translate }}</div>
+                     <div class="font-bold text-stone-800">{{ 'nutrient_deficiency' | translate }}</div>
+                     <div class="text-sm text-stone-500 mt-1">{{ 'cap_deficiency_desc' | translate }}</div>
                    </div>
-                 </li>
-                 <li class="flex items-start gap-3">
-                   <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">🌱</div>
-                   <div>
-                     <div class="font-bold text-stone-700">{{ 'growth_stage' | translate }}</div>
-                     <div class="text-xs text-stone-500">{{ 'cap_growth_desc' | translate }}</div>
-                   </div>
-                 </li>
-               </ul>
+                 </div>
+               </div>
+            </div>
+          }
+
+          <!-- Loading State -->
+          @if (isAnalyzing()) {
+            <div class="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm h-full flex flex-col items-center justify-center text-center animate-pulse">
+              <div class="w-20 h-20 relative mb-6">
+                <div class="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-2xl">✨</div>
+              </div>
+              <h3 class="text-xl font-bold text-stone-800 mb-2">Analyzing Plant Data...</h3>
+              <p class="text-stone-500">Scanning for diseases, pests, and nutrient levels</p>
             </div>
           }
 
           <!-- Analysis Result -->
-          @if (result()) {
-            <div class="bg-white rounded-2xl shadow-lg border border-stone-100 overflow-hidden animate-fadeIn">
+          @if (result() && !isAnalyzing()) {
+            <div class="bg-white rounded-3xl shadow-xl shadow-stone-200/50 border border-stone-200/60 overflow-hidden animate-fadeIn">
               
               <!-- Header -->
-              <div class="p-6 border-b border-stone-100 flex justify-between items-start bg-gradient-to-r"
-                   [class.from-green-50]="result()?.health === 'Healthy'"
-                   [class.to-green-100]="result()?.health === 'Healthy'"
-                   [class.from-red-50]="result()?.health !== 'Healthy'"
-                   [class.to-red-100]="result()?.health !== 'Healthy'">
-                <div>
-                  <div class="text-xs font-bold uppercase tracking-wider opacity-60 mb-1">{{ 'analysis_result' | translate }}</div>
-                  <h3 class="text-2xl font-bold text-stone-800">{{ result()?.name }}</h3>
-                  <div class="flex items-center gap-2 mt-2">
-                    <span class="px-3 py-1 rounded-full text-sm font-bold border"
-                          [class.bg-green-100]="result()?.health === 'Healthy'"
-                          [class.text-green-700]="result()?.health === 'Healthy'"
-                          [class.border-green-200]="result()?.health === 'Healthy'"
-                          [class.bg-red-100]="result()?.health !== 'Healthy'"
-                          [class.text-red-700]="result()?.health !== 'Healthy'"
-                          [class.border-red-200]="result()?.health !== 'Healthy'">
+              <div class="p-8 border-b border-stone-100 flex justify-between items-start relative overflow-hidden"
+                   [class.bg-emerald-50]="result()?.health === 'Healthy'"
+                   [class.bg-red-50]="result()?.health !== 'Healthy'">
+                
+                <!-- Background decoration -->
+                <div class="absolute -right-10 -top-10 text-9xl opacity-5 pointer-events-none">
+                  {{ result()?.health === 'Healthy' ? '🌿' : '🦠' }}
+                </div>
+
+                <div class="relative z-10">
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/60 backdrop-blur-sm text-xs font-bold uppercase tracking-wider text-stone-600 mb-3 border border-white/40 shadow-sm">
+                    <span class="w-2 h-2 rounded-full" [class.bg-emerald-500]="result()?.health === 'Healthy'" [class.bg-red-500]="result()?.health !== 'Healthy'"></span>
+                    {{ 'analysis_result' | translate }}
+                  </div>
+                  <h3 class="text-3xl font-extrabold text-stone-800 tracking-tight">{{ result()?.name }}</h3>
+                  <div class="flex items-center gap-3 mt-4">
+                    <span class="px-4 py-1.5 rounded-full text-sm font-bold shadow-sm"
+                          [class.bg-emerald-500]="result()?.health === 'Healthy'"
+                          [class.text-white]="result()?.health === 'Healthy'"
+                          [class.bg-red-500]="result()?.health !== 'Healthy'"
+                          [class.text-white]="result()?.health !== 'Healthy'">
                       {{ result()?.health === 'Healthy' ? ('healthy' | translate) : ('attention' | translate) }}
                     </span>
-                    <span class="text-xs text-stone-500 font-mono">{{ 'ai_confidence' | translate }}: {{ result()?.confidence }}%</span>
+                    <span class="text-sm text-stone-600 font-medium bg-white/60 px-3 py-1.5 rounded-full backdrop-blur-sm border border-white/40">
+                      Confidence: <span class="font-mono font-bold">{{ result()?.confidence }}%</span>
+                    </span>
                   </div>
-                </div>
-                <div class="text-4xl">
-                  {{ result()?.health === 'Healthy' ? '✅' : '⚠️' }}
                 </div>
               </div>
 
               <!-- Content -->
-              <div class="p-6 space-y-6">
+              <div class="p-8 space-y-8">
                 
-                <!-- Issues -->
+                <!-- Symptoms -->
                 <div>
-                  <h4 class="font-bold text-stone-700 mb-2 flex items-center gap-2">
-                    <span>🔍</span> {{ 'symptoms' | translate }}
+                  <h4 class="font-bold text-stone-800 text-lg mb-3 flex items-center gap-2">
+                    <span class="bg-stone-100 p-1.5 rounded-lg text-sm">🔍</span> {{ 'symptoms' | translate }}
                   </h4>
-                  <p class="text-stone-600 leading-relaxed bg-stone-50 p-3 rounded-lg border border-stone-100">
+                  <p class="text-stone-600 leading-relaxed bg-stone-50 p-4 rounded-2xl border border-stone-100">
                     {{ result()?.symptoms || ('none_detected' | translate) }}
                   </p>
                 </div>
 
-                <!-- Nutrient Deficiency Alert (Special Integration) -->
+                <!-- Nutrient Deficiency Alert -->
                 @if (result()?.deficiency) {
-                  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-                    <div class="text-2xl">🧪</div>
+                  <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
+                    <div class="bg-white p-2 rounded-xl shadow-sm text-xl">🧪</div>
                     <div>
-                      <h5 class="font-bold text-amber-800">{{ 'nutrient_deficiency_detected' | translate }}: {{ result()?.deficiency }}</h5>
-                      <p class="text-sm text-amber-700 mt-1">{{ 'create_mix_msg' | translate }}</p>
-                      <button (click)="goToCalculator()" class="mt-2 text-xs font-bold bg-amber-200 text-amber-800 px-3 py-1.5 rounded-lg hover:bg-amber-300 transition-colors">
+                      <h5 class="font-bold text-amber-900 text-lg">{{ 'nutrient_deficiency_detected' | translate }}: {{ result()?.deficiency }}</h5>
+                      <p class="text-sm text-amber-700 mt-1 mb-3">{{ 'create_mix_msg' | translate }}</p>
+                      <button (click)="goToCalculator()" class="text-sm font-bold bg-amber-500 text-white px-4 py-2 rounded-xl shadow-md shadow-amber-200 hover:bg-amber-600 hover:-translate-y-0.5 transition-all">
                         {{ 'go_to_calculator' | translate }} →
                       </button>
                     </div>
@@ -155,19 +185,38 @@ import { GEMINI_API_KEY } from '../config';
                 <!-- Treatment -->
                 @if (result()?.treatment) {
                   <div>
-                    <h4 class="font-bold text-stone-700 mb-2 flex items-center gap-2">
-                      <span>💊</span> {{ 'recommended_treatment' | translate }}
+                    <h4 class="font-bold text-stone-800 text-lg mb-4 flex items-center gap-2">
+                      <span class="bg-stone-100 p-1.5 rounded-lg text-sm">💊</span> {{ 'recommended_treatment' | translate }}
                     </h4>
                     
-                    <div class="space-y-3">
-                      <div class="bg-green-50 p-3 rounded-lg border border-green-100">
-                        <div class="text-xs font-bold text-green-700 uppercase mb-1">{{ 'organic_solutions' | translate }}</div>
-                        <p class="text-stone-700 text-sm">{{ result()?.treatment?.organic }}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div class="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100">
+                        <div class="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <span class="bg-emerald-100 p-1 rounded">🌿</span> {{ 'organic_solutions' | translate }}
+                        </div>
+                        <p class="text-stone-700 text-sm leading-relaxed whitespace-pre-line">{{ result()?.treatment?.organic }}</p>
                       </div>
                       
-                      <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                        <div class="text-xs font-bold text-blue-700 uppercase mb-1">{{ 'chemical_intervention' | translate }}</div>
-                        <p class="text-stone-700 text-sm">{{ result()?.treatment?.chemical }}</p>
+                      <div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 flex flex-col">
+                        <div class="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <span class="bg-blue-100 p-1 rounded">🧪</span> {{ 'chemical_intervention' | translate }}
+                        </div>
+                        <p class="text-stone-700 text-sm leading-relaxed flex-grow whitespace-pre-line">{{ result()?.treatment?.chemical }}</p>
+                        
+                        <!-- Pesticide Links -->
+                        @if (result()?.treatment?.pesticideName) {
+                          <div class="mt-4 pt-4 border-t border-blue-200/50">
+                            <div class="text-xs font-bold text-stone-500 mb-2">Buy {{ result()?.treatment?.pesticideName }} online:</div>
+                            <div class="flex gap-2">
+                              <a [href]="'https://www.amazon.in/s?k=' + result()?.treatment?.pesticideName" target="_blank" class="flex-1 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl border border-stone-200 shadow-sm transition-colors flex items-center justify-center gap-2">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" class="h-3 opacity-80" alt="Amazon">
+                              </a>
+                              <a [href]="'https://www.flipkart.com/search?q=' + result()?.treatment?.pesticideName" target="_blank" class="flex-1 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl border border-stone-200 shadow-sm transition-colors flex items-center justify-center gap-2">
+                                <img src="https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/fkheaderlogo_exploreplus-44005d.svg" class="h-4 opacity-80" alt="Flipkart">
+                              </a>
+                            </div>
+                          </div>
+                        }
                       </div>
                     </div>
                   </div>
@@ -176,12 +225,15 @@ import { GEMINI_API_KEY } from '../config';
                 <!-- Prevention -->
                 @if (result()?.prevention) {
                   <div>
-                    <h4 class="font-bold text-stone-700 mb-2 flex items-center gap-2">
-                      <span>🛡️</span> {{ 'preventive_measures' | translate }}
+                    <h4 class="font-bold text-stone-800 text-lg mb-3 flex items-center gap-2">
+                      <span class="bg-stone-100 p-1.5 rounded-lg text-sm">🛡️</span> {{ 'preventive_measures' | translate }}
                     </h4>
-                    <ul class="list-disc list-inside text-stone-600 text-sm space-y-1 ml-1">
+                    <ul class="space-y-2">
                       @for (step of result()?.prevention; track step) {
-                        <li>{{ step }}</li>
+                        <li class="flex items-start gap-3 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                          <div class="text-emerald-500 mt-0.5">✓</div>
+                          <div class="text-stone-600 text-sm">{{ step }}</div>
+                        </li>
                       }
                     </ul>
                   </div>
@@ -189,35 +241,144 @@ import { GEMINI_API_KEY } from '../config';
 
               </div>
               
-              <div class="bg-stone-50 p-4 border-t border-stone-100 text-center">
-                <button (click)="reset()" class="text-stone-500 hover:text-stone-800 font-bold text-sm transition-colors">
-                  {{ 'analyze_another' | translate }}
-                </button>
-              </div>
-
             </div>
           }
         </div>
 
       </div>
+
+      <!-- History Section -->
+      @if (history().length > 0) {
+        <div class="mt-16 pt-10 border-t border-stone-200/60">
+          <div class="flex justify-between items-center mb-8">
+            <div>
+              <h3 class="text-2xl font-bold text-stone-800 flex items-center gap-3">
+                <span class="bg-stone-100 p-2 rounded-xl text-xl">🕒</span> Analysis History
+              </h3>
+              <p class="text-stone-500 text-sm mt-1">Your recent plant health scans saved locally.</p>
+            </div>
+            <button (click)="clearHistory()" class="text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors border border-red-100">
+              Clear History
+            </button>
+          </div>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5">
+            @for (item of history(); track item.id) {
+              <div class="bg-white rounded-2xl shadow-sm border border-stone-200/60 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col" (click)="loadFromHistory(item)">
+                <div class="h-32 overflow-hidden relative">
+                  <img [src]="item.image" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                  <div class="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-stone-900/20 to-transparent"></div>
+                  <div class="absolute bottom-3 left-3 right-3">
+                    <div class="text-white font-bold text-sm truncate drop-shadow-md">{{ item.result.name }}</div>
+                    <div class="text-white/80 text-xs mt-0.5">{{ item.date | date:'mediumDate' }}</div>
+                  </div>
+                </div>
+                <div class="p-3 bg-white flex justify-between items-center flex-grow">
+                  <span class="text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider"
+                        [class.bg-emerald-100]="item.result.health === 'Healthy'"
+                        [class.text-emerald-700]="item.result.health === 'Healthy'"
+                        [class.bg-red-100]="item.result.health !== 'Healthy'"
+                        [class.text-red-700]="item.result.health !== 'Healthy'">
+                    {{ item.result.health }}
+                  </span>
+                  <span class="text-xs text-stone-400 font-mono font-medium">{{ item.result.confidence }}%</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
     </div>
   `
 })
-export class PlantAnalyserComponent {
+export class PlantAnalyserComponent implements OnInit {
   dataService = inject(DataService);
   translationService = inject(TranslationService);
   
   previewUrl = signal<string | null>(null);
   isAnalyzing = signal<boolean>(false);
   result = signal<any>(null);
+  history = signal<AnalysisHistory[]>([]);
+
+  ngOnInit() {
+    this.loadHistory();
+  }
+
+  loadHistory() {
+    const saved = localStorage.getItem('plant_analysis_history');
+    if (saved) {
+      try {
+        this.history.set(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse history', e);
+      }
+    }
+  }
+
+  saveToHistory(image: string, result: any) {
+    const newItem: AnalysisHistory = {
+      id: Date.now().toString(),
+      date: Date.now(),
+      image,
+      result
+    };
+    const current = this.history();
+    // Keep last 10 items
+    const updated = [newItem, ...current].slice(0, 10);
+    this.history.set(updated);
+    localStorage.setItem('plant_analysis_history', JSON.stringify(updated));
+  }
+
+  clearHistory() {
+    if (confirm('Are you sure you want to clear your local analysis history?')) {
+      this.history.set([]);
+      localStorage.removeItem('plant_analysis_history');
+    }
+  }
+
+  loadFromHistory(item: AnalysisHistory) {
+    this.previewUrl.set(item.image);
+    this.result.set(item.result);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   onFileSelected(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        this.previewUrl.set(reader.result as string);
-        this.result.set(null); // Reset previous result
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round(height * MAX_WIDTH / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round(width * MAX_HEIGHT / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG to drastically reduce payload size and speed up AI analysis
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          this.previewUrl.set(compressedDataUrl);
+          this.result.set(null); // Reset previous result
+        };
+        img.src = e.target?.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -255,20 +416,29 @@ export class PlantAnalyserComponent {
       const base64Data = this.previewUrl()!.split(',')[1];
       
       const prompt = `
-        Analyze this plant image for diseases, pests, or nutrient deficiencies.
+        You are an expert agricultural pathologist and agronomist. Analyze this plant image for diseases, pests, or nutrient deficiencies with high precision.
         Return the response in ${this.translationService.currentLang()} language.
+        
+        CRITICAL INSTRUCTIONS FOR TREATMENTS:
+        Because agricultural treatments are sensitive, your chemical and organic recommendations MUST be highly precise, accurate, and safe.
+        - Include exact active ingredients and concentrations.
+        - Provide precise dosages (e.g., "Mix 2ml per 1 Liter of water").
+        - Specify application methods and timing (e.g., "Foliar spray during early morning").
+        - Include critical safety precautions (e.g., "Toxic to bees", "Wear protective gear", "Pre-harvest interval").
+        
         Return a JSON object with this EXACT structure:
         {
-          "name": "Plant Name",
+          "name": "Plant Name & Specific Disease/Pest",
           "health": "Healthy" or "Unhealthy",
           "confidence": 95,
-          "symptoms": "Description of visual symptoms...",
+          "symptoms": "Detailed description of visual symptoms...",
           "deficiency": "Nitrogen" or "Phosphorus" or "Potassium" or null,
           "treatment": {
-            "organic": "Organic remedy...",
-            "chemical": "Chemical remedy..."
+            "organic": "Precise organic remedy including exact measurements, preparation, and application instructions...",
+            "chemical": "Precise chemical remedy including active ingredient, exact dosage (ml/L), application method, and safety warnings...",
+            "pesticideName": "Specific active ingredient or common commercial pesticide name to buy (e.g., 'Imidacloprid 17.8% SL', 'Neem Oil 10000 ppm'), else null"
           },
-          "prevention": ["Step 1", "Step 2"]
+          "prevention": ["Specific step 1", "Specific step 2"]
         }
       `;
 
@@ -296,6 +466,9 @@ export class PlantAnalyserComponent {
       if (jsonMatch) {
         const analysis = JSON.parse(jsonMatch[0]);
         this.result.set(analysis);
+        
+        // Save to local history
+        this.saveToHistory(this.previewUrl()!, analysis);
 
         // If deficiency detected, update global state for Ratio Calculator
         if (analysis.deficiency) {
