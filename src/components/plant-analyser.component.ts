@@ -442,21 +442,41 @@ export class PlantAnalyserComponent implements OnInit {
         }
       `;
 
-      const result = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: prompt },
-              { inlineData: { mimeType: mimeType, data: base64Data } }
-            ]
+      let result;
+      try {
+        result = await ai.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: mimeType, data: base64Data } }
+              ]
+            }
+          ],
+          config: {
+            responseMimeType: 'application/json'
           }
-        ],
-        config: {
-          responseMimeType: 'application/json'
-        }
-      });
+        });
+      } catch (e: any) {
+        console.warn('Primary model failed, attempting fallback...', e);
+        result = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: mimeType, data: base64Data } }
+              ]
+            }
+          ],
+          config: {
+            responseMimeType: 'application/json'
+          }
+        });
+      }
 
       const responseText = result.text;
       if (!responseText) throw new Error('No response from AI');
@@ -480,7 +500,15 @@ export class PlantAnalyserComponent implements OnInit {
 
     } catch (error: any) {
       console.error('Analysis failed', error);
-      alert(`Analysis failed: ${error.message || error}`);
+      let errorMsg = error.message || String(error);
+      
+      if (errorMsg.includes('503') || errorMsg.includes('UNAVAILABLE') || errorMsg.includes('high demand')) {
+        errorMsg = "Google's AI servers are currently experiencing high demand. Please wait a few seconds and try again.";
+      } else if (errorMsg.includes('API key expired') || errorMsg.includes('API_KEY_INVALID')) {
+        errorMsg = "Your API key is invalid or expired. Please update it in your environment variables.";
+      }
+      
+      alert(`Analysis failed:\n\n${errorMsg}`);
     } finally {
       this.isAnalyzing.set(false);
     }
