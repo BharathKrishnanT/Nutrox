@@ -208,13 +208,14 @@ export interface AnalysisHistory {
                           <div class="mt-4 pt-4 border-t border-blue-200/50">
                             <div class="text-xs font-bold text-stone-500 mb-2">Buy {{ result()?.treatment?.pesticideName }} online:</div>
                             <div class="flex gap-2">
-                              <a [href]="'https://www.amazon.in/s?k=' + result()?.treatment?.pesticideName" target="_blank" class="flex-1 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl border border-stone-200 shadow-sm transition-colors flex items-center justify-center gap-2">
+                              <a [href]="'https://www.amazon.in/s?k=' + result()?.treatment?.pesticideName + '&tag=9750-21'" target="_blank" class="flex-1 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl border border-stone-200 shadow-sm transition-colors flex items-center justify-center gap-2">
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" class="h-3 opacity-80" alt="Amazon">
                               </a>
-                              <a [href]="'https://www.flipkart.com/search?q=' + result()?.treatment?.pesticideName" target="_blank" class="flex-1 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl border border-stone-200 shadow-sm transition-colors flex items-center justify-center gap-2">
+                              <a [href]="'https://www.flipkart.com/search?q=' + result()?.treatment?.pesticideName + '&affid=YOUR_FLIPKART_AFFILIATE_ID'" target="_blank" class="flex-1 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl border border-stone-200 shadow-sm transition-colors flex items-center justify-center gap-2">
                                 <img src="https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/fkheaderlogo_exploreplus-44005d.svg" class="h-4 opacity-80" alt="Flipkart">
                               </a>
                             </div>
+                            <p class="text-[9px] text-stone-400 mt-2 text-center leading-tight">As an affiliate, we may earn a commission from qualifying purchases.</p>
                           </div>
                         }
                       </div>
@@ -425,6 +426,7 @@ export class PlantAnalyserComponent implements OnInit {
         - Provide precise dosages (e.g., "Mix 2ml per 1 Liter of water").
         - Specify application methods and timing (e.g., "Foliar spray during early morning").
         - Include critical safety precautions (e.g., "Toxic to bees", "Wear protective gear", "Pre-harvest interval").
+        - STRICT SEPARATION: The 'chemical' field MUST ONLY contain synthetic agrochemicals (fungicides, insecticides, synthetic fertilizers). NEVER put organic solutions (like Neem oil or compost) in the 'chemical' field.
         
         Return a JSON object with this EXACT structure:
         {
@@ -434,9 +436,9 @@ export class PlantAnalyserComponent implements OnInit {
           "symptoms": "Detailed description of visual symptoms...",
           "deficiency": "Nitrogen" or "Phosphorus" or "Potassium" or null,
           "treatment": {
-            "organic": "Precise organic remedy including exact measurements, preparation, and application instructions...",
-            "chemical": "Precise chemical remedy including active ingredient, exact dosage (ml/L), application method, and safety warnings...",
-            "pesticideName": "Specific active ingredient or common commercial pesticide name to buy (e.g., 'Imidacloprid 17.8% SL', 'Neem Oil 10000 ppm'), else null"
+            "organic": "Precise organic/natural remedy including exact measurements, preparation, and application instructions...",
+            "chemical": "MUST BE A SYNTHETIC AGROCHEMICAL (e.g., Mancozeb, Chlorpyrifos, NPK 19:19:19). DO NOT suggest organic remedies here. Include exact dosage (ml/L), application method, and safety warnings...",
+            "pesticideName": "Specific SYNTHETIC active ingredient or commercial chemical name to buy (e.g., 'Imidacloprid 17.8% SL', 'Mancozeb 75% WP'), else null"
           },
           "prevention": ["Specific step 1", "Specific step 2"]
         }
